@@ -1,0 +1,425 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: green;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                background-size: cover;
+            }
+            #rules, #w{
+                display: inline-block;
+                vertical-align: top;
+                width: 24.7%;
+                text-align: left;
+                height: 100%;
+                color: white;
+                font-family: cursive;
+            }    
+            #rules span{
+                font-size: 25px;
+                color: greenyellow;
+                cursor: pointer; 
+            }
+            #rules span:hover{
+                color: white;
+            }  
+            #rules p{
+                display: none;
+            }  
+            #game{
+                display: inline-block;
+                vertical-align: top;
+                width: 50%;
+                text-align: center;
+            }
+            .dealer img, #player img{
+                display: inline-block;
+                vertical-align: top;
+                margin: auto;
+                width: 150px;
+            }
+            #overlay .dealer img{
+                width: 100px;
+            }
+            .sameHeight{
+                height:160px;
+            }
+            #playerOptions{
+                height: 100px;
+            }
+            input{
+                border: none;
+                background-color: green;
+                width: 150px;
+                height: 40px;
+                font-size: 25px;
+                font-family: cursive;
+                cursor: pointer; 
+            }
+            input:hover{
+                color: white;
+            }
+            #drawBtn{
+                margin-right: 50px;
+                margin-top: 10px;
+                width: 100px;
+                display: none;
+            }
+            #standBtn{
+                margin-left: 50px;
+                width: 100px;
+                margin-top: 10px;
+                display: none;
+            }
+            #newGameBtn{
+                display: none;
+            }
+            .cards{
+                display: inline-block;
+                width: 100px;
+                vertical-align: top;
+            }
+            #dealers{
+                display: none;
+            }
+            #overlay {
+                margin-top: 240px;
+                position: fixed;
+                display: inline;
+                width: 100%;
+                height: 200px;
+                background-color: rgba(0,0,0,0.5);
+                z-index: 2;
+                cursor: pointer;
+                text-align: center;
+            }
+            #overlay div{
+                display: inline-block;
+                width: 100%;
+                vertical-align: top;
+            }
+            #result{
+                font-size: 26px;
+                color: greenyellow;
+                font-family: cursive;
+            }
+            #comment{
+                color: white;
+                font-size: 23px;
+                font-family: cursive;
+            }
+            #playerGender{
+                cursor: pointer;
+            }
+            .win_loss{
+                display: inline-block;
+                vertical-align: bottom;
+                margin: auto;
+                font-family: cursive;
+                color: white;
+                font-size: 23px;
+                width: 100px;
+            }
+        </style>
+        <script>
+            var deckId="";
+            var playerTotal=0;
+            var dealerTotal=0;
+            var dealerCard=false;
+            var bust=false;
+            var result="";
+            var playerGender="male";
+            var wins=0; var losses=0;
+
+            function newGame() {
+                document.getElementById("result").innerText="";
+                document.getElementById("comment").innerText="";
+                var playerDeck=document.getElementById('playerCards');
+                var dealerDeck=document.getElementById('dealerCards');
+                playerDeck.innerHTML="";
+                dealerDeck.innerHTML="";
+                result="";
+                deckId="";
+                dealerCard=false;
+                playerTotal=0;
+                dealerTotal=0;
+                bust=false;
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", "https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1");
+                xhr.send();
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        deckId=JSON.parse(xhr.responseText).deck_id;
+                        playerDraw();
+                        dealerDraw();
+                        playerDraw();
+                        dealerDraw();
+                    }
+                }; 
+                document.getElementById("newGameBtn").style.display="none";
+                document.getElementById("drawBtn").style.display="inline";
+                document.getElementById("standBtn").style.display="inline";
+            }
+
+            function stand(){
+                console.log("dealer: "+dealerTotal);
+                if (dealerTotal>=17) {
+                    endGame();
+                }else{
+                    var value;
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("GET", "https://deckofcardsapi.com/api/deck/"+deckId+"/draw/?count=1");
+                    xhr.send();
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            data=JSON.parse(xhr.responseText);
+
+                            var dealerDeck=document.getElementById('dealerCards');
+                            var imgURL=data.cards[0].image;
+                            var img=document.createElement('IMG');
+                            img.setAttribute('src', imgURL);
+                            img.setAttribute('class', 'cards');
+                            dealerDeck.appendChild(img);
+
+                            value=data.cards[0].value;
+                            if (value=="JACK"||value=="QUEEN"||value=="KING") {
+                                dealerTotal=dealerTotal+10;
+                            }else if(value=="ACE"){
+                                if ((dealerTotal+11)>21) {
+                                    dealerTotal=dealerTotal+1;
+                                } else {
+                                    dealerTotal=dealerTotal+11;
+                                }
+                            }else{
+                                dealerTotal=dealerTotal+parseInt(value);
+                            }
+                            if (dealerTotal<17) {
+                                stand();
+                            }else{
+                                console.log("dealer: "+dealerTotal);
+                                endGame();
+                            }
+                        }
+                    };
+                }
+            }
+
+            function endGame() {
+                document.getElementById("drawBtn").style.display="none";
+                document.getElementById("standBtn").style.display="none";
+                if (playerTotal==21) {
+                    console.log("player: Blackjack!");
+                    alert("You got a Blackjack!");
+                }
+
+                if (bust) {
+                    console.log("You Lose!");
+                    result="lose";
+                }
+                if (!bust) {
+                    if (dealerTotal<=21) {
+                        if (dealerTotal==playerTotal) {
+                            console.log("Tie!");   
+                            result="tie";
+                        }else if(dealerTotal<playerTotal){
+                            console.log("You Win!");
+                            result="win";
+                        }else{
+                            console.log("You Lose!"); 
+                            result="lose"; 
+                        }
+                    }else{
+                        console.log("You Win!");
+                        result="win";
+                    }
+                }
+                displayResult();
+            }
+
+            function displayResult() {
+                document.getElementById('dealers').style.display="inline";
+                var sentence="";
+                var comment;
+                if (result=="win") {
+                    sentence="You Win!";
+                    wins++;
+                    document.getElementById('wins').innerHTML=wins;
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("GET", "https://complimentr.com/api");
+                    xhr.send();
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            comment=JSON.parse(xhr.responseText).compliment;
+                            console.log(comment);
+                            document.getElementById("result").innerText=sentence;
+                            document.getElementById("comment").innerText="Dirty Dealer: \""+comment+"\"";
+                            document.getElementById('overlay').style.display="inline";
+                        }
+                    }
+                }else if (result=="tie") {
+                    sentence="Tie!";
+                    comment="...";
+                    document.getElementById("result").innerText=sentence;
+                    document.getElementById("comment").innerText="Dirty Dealer: \""+comment+"\"";
+                    document.getElementById('overlay').style.display="inline";
+                }else{
+                    sentence="You Lose!";
+                    losses++;
+                    document.getElementById('losses').innerHTML=losses;
+                    var xhr = new XMLHttpRequest();
+                    //xhr.open("GET", "https://evilinsult.com/generate_insult.php");
+                    xhr.open("GET", "https://insult.mattbas.org/api/insult.json");
+                    xhr.send();
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            comment=JSON.parse(xhr.responseText).insult;
+                            //comment=xhr.responseText;
+                            console.log(comment);
+                            document.getElementById("result").innerText=sentence;
+                            document.getElementById("comment").innerText="Dirty Dealer: \""+comment+"\"";
+                            document.getElementById('overlay').style.display="inline";
+                        }
+                    }
+                }
+            }
+
+            function playerDraw(){
+                var value;
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", "https://deckofcardsapi.com/api/deck/"+deckId+"/draw/?count=1");
+                xhr.send();
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        data=JSON.parse(xhr.responseText);
+
+                        var playerDeck=document.getElementById('playerCards');
+                        var imgURL=data.cards[0].image;
+                        var img=document.createElement('IMG');
+                        img.setAttribute('src', imgURL);
+                        img.setAttribute('class', 'cards')
+                        playerDeck.appendChild(img);
+
+                        value=data.cards[0].value;
+                        if (value=="JACK"||value=="QUEEN"||value=="KING") {
+                            playerTotal=playerTotal+10;
+                        }else if(value=="ACE"){
+                            if ((playerTotal+11)>21) {
+                                playerTotal=playerTotal+1;
+                            } else {
+                                playerTotal=playerTotal+11;
+                            }
+                        }else{
+                            playerTotal=playerTotal+parseInt(value);
+                        }
+                        console.log("player:"+playerTotal); 
+                        if (playerTotal>21) {
+                            console.log("Bust");
+                            bust=true;
+                            endGame();
+                        }
+                    }
+                };
+
+            }
+
+            function dealerDraw(){
+                var value;
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", "https://deckofcardsapi.com/api/deck/"+deckId+"/draw/?count=1");
+                xhr.send();
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        data=JSON.parse(xhr.responseText);
+
+                        var dealerDeck=document.getElementById('dealerCards');
+                        var imgURL=data.cards[0].image;
+                        var img=document.createElement('IMG');
+                        img.setAttribute('src', imgURL);
+                        img.setAttribute('class', 'cards')
+                        if (dealerCard) {
+                            img.setAttribute('id', 'dealers')
+                        } else {
+                            dealerCard=true;
+                        }
+                        dealerDeck.appendChild(img);
+
+                        value=data.cards[0].value;
+                        if (value=="JACK"||value=="QUEEN"||value=="KING") {
+                            dealerTotal=dealerTotal+10;
+                        }else if(value=="ACE"){
+                            if ((dealerTotal+11)>21) {
+                                dealerTotal=dealerTotal+1;
+                            } else {
+                                dealerTotal=dealerTotal+11;
+                            }
+                        }else{
+                            dealerTotal=dealerTotal+parseInt(value);
+                        }
+                        console.log("dealer: "+dealerTotal);
+                    }
+                };
+            }
+
+            function removeOverlay() {
+                document.getElementById('overlay').style.display="none";
+                document.getElementById("newGameBtn").style.display="inline";
+            }
+
+            function changeGender() {
+                if (playerGender=="male") {
+                    document.getElementById("playerGender").src = "./woman.png";
+                    playerGender="female";
+                }else{
+                    document.getElementById("playerGender").src = "./man.png";
+                    playerGender="male";
+                } 
+            }
+
+            function showRules() {
+                document.getElementById("rulesText").style.display="inline";
+            }
+
+            function hideRules() {
+                document.getElementById("rulesText").style.display="none";
+            }
+
+        </script>
+    </head>
+    <body>
+        <div id="overlay" onclick="removeOverlay()">
+            <div class="dealer"><img src="./gambling.png" alt=""></div>
+            <div id="result">Dirty Dealer Blackjack!</div>
+            <div id="comment">Click here to start</div>
+        </div>
+        <div id='rules'>
+            <span onmouseover="showRules()" onmouseleave="hideRules()">RULES</span><br/>
+            <p id="rulesText"><span>Welcome to <br/> Dirty Dealer Blackjack!<br/><br/></span>
+                Beat Dirty Dealer's hand without going over 21!<br/><br/>
+                Face cards are worth 10. Aces are worth 1 or 11, whichever makes a better hand.<br/><br/>
+                You both start with two cards.<br/> <br/>
+                One of Dirty Dealer's cards is hidden until the end.<br/><br/>
+                To 'Hit' is to ask for another card.<br/><br/>
+                To 'Stand' is to hold your total and end your turn.<br/><br/>
+                If you go over 21 you Bust and Dirty Dealer wins regardless of his hand.<br/><br/>
+                If you are dealt 21 you got a Blackjack!<br/><br/>
+                Dirty Dealer will hit until his cards total 17 or higher.<br/><br/>
+                If you win, Dirty Dealer will compliment you!<br/><br/>
+                If you lose, Dirty Dealer will insult you!</p>
+        </div>
+        <div id="game"><div class="dealer"><img src="./gambling.png" alt=""></div>
+        <div id="dealerCards" class="sameHeight"></div>
+        <div id="playerOptions">
+            <input type="button" value="New Game"id="newGameBtn" onclick="newGame()"><br/>
+            <input type="button" value="Hit" id="drawBtn" onclick="playerDraw()">
+            <input type="button" value="Stand" id="standBtn" onclick="stand()">
+        </div>
+        <div id="playerCards" class="sameHeight"></div>
+        <div id="player">
+            <p class="win_loss">Wins: <span id="wins">0</span></p>
+            <img id="playerGender" src="./man.png" alt="" onclick="changeGender()">
+            <p class="win_loss">Losses: <span id="losses">0</span></p>
+        </div></div>
+        <div id='w'></div>
+    </body>
+</html>
